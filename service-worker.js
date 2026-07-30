@@ -1,4 +1,4 @@
-const CACHE_NAME = 'robiul-office-kharoch-v1';
+const CACHE_NAME = 'office-kharoch-v3';
 const ASSETS = [
   './',
   './index.html',
