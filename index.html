@@ -269,6 +269,7 @@
       <table class="desktop-table">
         <thead>
           <tr>
+            <th style="width:55px;">নং</th>
             <th style="width:95px;">তারিখ</th>
             <th style="width:100px;">খাত</th>
             <th>বিবরণ</th>
@@ -362,7 +363,7 @@
     <div class="card">
       <div class="ledger-head"><div class="title">ভাউচার জমার ইতিহাস</div><div class="total" id="selectedBatchTotal" style="display:none;"></div></div>
       <table class="desktop-table">
-        <thead><tr><th style="width:30px;"></th><th style="width:150px;">তারিখ পরিসর</th><th style="width:100px;">জমার তারিখ</th><th style="width:70px;">এন্ট্রি</th><th style="width:100px;">মোট টাকা</th><th>নোট</th><th style="width:80px;"></th></tr></thead>
+        <thead><tr><th style="width:30px;"></th><th style="width:110px;">ভাউচার নং</th><th style="width:150px;">তারিখ পরিসর</th><th style="width:100px;">জমার তারিখ</th><th style="width:70px;">এন্ট্রি</th><th style="width:100px;">মোট টাকা</th><th>নোট</th><th style="width:80px;"></th></tr></thead>
         <tbody id="batchTableBody"></tbody>
       </table>
       <div class="mobile-list" id="batchMobileList"></div>
@@ -372,7 +373,7 @@
     <div class="card hidden" id="batchDetailCard">
       <div class="ledger-head"><div class="title" id="batchDetailTitle">বিস্তারিত</div></div>
       <table class="desktop-table">
-        <thead><tr><th style="width:95px;">তারিখ</th><th style="width:100px;">খাত</th><th>বিবরণ</th><th style="width:90px;">কে</th><th style="width:95px;">টাকা</th></tr></thead>
+        <thead><tr><th style="width:55px;">নং</th><th style="width:95px;">তারিখ</th><th style="width:100px;">খাত</th><th>বিবরণ</th><th style="width:90px;">কে</th><th style="width:95px;">টাকা</th></tr></thead>
         <tbody id="batchDetailBody"></tbody>
       </table>
       <div class="mobile-list" id="batchDetailMobileList"></div>
@@ -435,10 +436,27 @@ function loadAll(){
   try{ expenses = JSON.parse(localStorage.getItem(K_EXP) || '[]'); }catch(e){ expenses = []; }
   try{ incomes = JSON.parse(localStorage.getItem(K_INC) || '[]'); }catch(e){ incomes = []; }
   try{ voucherBatches = JSON.parse(localStorage.getItem(K_BATCH) || '[]'); }catch(e){ voucherBatches = []; }
+  backfillVoucherNumbers();
 }
 function saveExp(){ localStorage.setItem(K_EXP, JSON.stringify(expenses)); }
 function saveInc(){ localStorage.setItem(K_INC, JSON.stringify(incomes)); }
 function saveBatches(){ localStorage.setItem(K_BATCH, JSON.stringify(voucherBatches)); }
+
+const K_COUNTER = 'okh-voucher-counter-v1';
+function nextVoucherNo(){
+  let n = parseInt(localStorage.getItem(K_COUNTER) || '0', 10);
+  n = n + 1;
+  localStorage.setItem(K_COUNTER, String(n));
+  return n;
+}
+function backfillVoucherNumbers(){
+  // Give a serial number to any expense that doesn't have one yet (oldest first)
+  const missing = expenses.filter(e => !e.voucherNo);
+  if(missing.length === 0) return;
+  missing.sort((a,b)=> (a.createdAt||'').localeCompare(b.createdAt||''));
+  missing.forEach(e => { e.voucherNo = nextVoucherNo(); });
+  saveExp();
+}
 
 let expMode = 'today'; // today | all | range | vouchers
 let rangeFrom = null, rangeTo = null;
@@ -516,6 +534,7 @@ function renderExpenses(){
       const voucherTag = e.voucher ? '<span class="voucher-badge">জমা দেওয়া</span>' : '';
       const tr = document.createElement('tr');
       tr.innerHTML = `
+        <td class="date-col">#${toBn(e.voucherNo||0)}</td>
         <td class="date-col">${prettyDate(e.date)}</td>
         <td class="cat-col"><span class="cat-badge">${escapeHtml(e.category)}</span></td>
         <td>${escapeHtml(e.description)}${voucherTag}</td>
@@ -530,7 +549,7 @@ function renderExpenses(){
       const div = document.createElement('div');
       div.className = 'm-row';
       div.innerHTML = `
-        <div class="m-top"><span>${prettyDate(e.date)} · <span class="cat-badge">${escapeHtml(e.category)}</span></span></div>
+        <div class="m-top"><span>#${toBn(e.voucherNo||0)} · ${prettyDate(e.date)} · <span class="cat-badge">${escapeHtml(e.category)}</span></span></div>
         <div class="m-desc">${escapeHtml(e.description)}${voucherTag} <span style="color:var(--ink-soft); font-weight:400; font-size:12.5px;">(${escapeHtml(personLabel)})</span></div>
         <div class="m-bottom">
           <div class="row-actions no-print">
@@ -616,9 +635,11 @@ function renderBatches(){
     emptyState.style.display='none';
     list.forEach(b=>{
       const rangeLabel = b.fromDate===b.toDate ? prettyDate(b.fromDate) : `${prettyDate(b.fromDate)} — ${prettyDate(b.toDate)}`;
+      const serialLabel = (b.serialFrom!=null && b.serialTo!=null) ? (b.serialFrom===b.serialTo ? `#${toBn(b.serialFrom)}` : `#${toBn(b.serialFrom)} – #${toBn(b.serialTo)}`) : '—';
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><input type="checkbox" class="batch-check" data-id="${b.id}" ${selectedBatchIds.has(b.id)?'checked':''}></td>
+        <td><span class="cat-badge">${serialLabel}</span></td>
         <td>${rangeLabel}</td>
         <td class="date-col">${prettyDate(b.submittedDate)}</td>
         <td>${toBn(b.count)} টি</td>
@@ -634,7 +655,7 @@ function renderBatches(){
           <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" class="batch-check" data-id="${b.id}" ${selectedBatchIds.has(b.id)?'checked':''}> নির্বাচন</label>
           <button class="mini-btn no-print" data-act="detail" data-id="${b.id}">👁️ দেখুন</button>
         </div>
-        <div class="m-desc">${rangeLabel} · জমা: ${prettyDate(b.submittedDate)}</div>
+        <div class="m-desc">ভাউচার ${serialLabel} · ${rangeLabel} · জমা: ${prettyDate(b.submittedDate)}</div>
         <div class="m-bottom"><span>${toBn(b.count)} টি এন্ট্রি</span><span class="m-amt">${money(b.total)}</span></div>`;
       mobileList.appendChild(div);
     });
@@ -665,20 +686,21 @@ function updateSelectedBatchTotal(){
 function showBatchDetail(batchId){
   const batch = voucherBatches.find(b=>b.id===batchId);
   if(!batch) return;
-  const items = expenses.filter(e=>e.voucherBatchId===batchId);
+  const items = expenses.filter(e=>e.voucherBatchId===batchId).sort((a,b)=>(a.voucherNo||0)-(b.voucherNo||0));
   document.getElementById('batchDetailCard').classList.remove('hidden');
   const rangeLabel = batch.fromDate===batch.toDate ? prettyDate(batch.fromDate) : `${prettyDate(batch.fromDate)} — ${prettyDate(batch.toDate)}`;
-  document.getElementById('batchDetailTitle').textContent = `বিস্তারিত: ${rangeLabel} (জমা: ${prettyDate(batch.submittedDate)})`;
+  const serialLabel = (batch.serialFrom!=null && batch.serialTo!=null) ? (batch.serialFrom===batch.serialTo ? `#${toBn(batch.serialFrom)}` : `#${toBn(batch.serialFrom)} – #${toBn(batch.serialTo)}`) : '';
+  document.getElementById('batchDetailTitle').textContent = `বিস্তারিত: ভাউচার ${serialLabel} · ${rangeLabel} (জমা: ${prettyDate(batch.submittedDate)})`;
   const tbody = document.getElementById('batchDetailBody');
   const mobileList = document.getElementById('batchDetailMobileList');
   tbody.innerHTML=''; mobileList.innerHTML='';
   items.forEach(e=>{
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td class="date-col">${prettyDate(e.date)}</td><td><span class="cat-badge">${escapeHtml(e.category)}</span></td><td>${escapeHtml(e.description)}</td><td>${escapeHtml(e.person||'—')}</td><td class="amt">${money(e.amount)}</td>`;
+    tr.innerHTML = `<td class="date-col">#${toBn(e.voucherNo||0)}</td><td class="date-col">${prettyDate(e.date)}</td><td><span class="cat-badge">${escapeHtml(e.category)}</span></td><td>${escapeHtml(e.description)}</td><td>${escapeHtml(e.person||'—')}</td><td class="amt">${money(e.amount)}</td>`;
     tbody.appendChild(tr);
     const div = document.createElement('div');
     div.className='m-row';
-    div.innerHTML = `<div class="m-top"><span>${prettyDate(e.date)} · <span class="cat-badge">${escapeHtml(e.category)}</span></span></div><div class="m-desc">${escapeHtml(e.description)}</div><div class="m-bottom"><span></span><span class="m-amt">${money(e.amount)}</span></div>`;
+    div.innerHTML = `<div class="m-top"><span>#${toBn(e.voucherNo||0)} · ${prettyDate(e.date)} · <span class="cat-badge">${escapeHtml(e.category)}</span></span></div><div class="m-desc">${escapeHtml(e.description)}</div><div class="m-bottom"><span></span><span class="m-amt">${money(e.amount)}</span></div>`;
     mobileList.appendChild(div);
   });
   document.getElementById('batchDetailCard').scrollIntoView({behavior:'smooth', block:'start'});
@@ -734,6 +756,7 @@ document.getElementById('addBtn').addEventListener('click', ()=>{
   if(!desc || !amount || Number(amount) <= 0){ alert('অনুগ্রহ করে বিবরণ ও সঠিক টাকার পরিমাণ লিখুন'); return; }
   expenses.push({
     id: Date.now().toString(36)+Math.random().toString(36).slice(2,7),
+    voucherNo: nextVoucherNo(),
     description: desc, category, person, amount:Number(amount), date, voucher,
     voucherBatchId: null, createdAt: new Date().toISOString()
   });
@@ -806,7 +829,9 @@ document.getElementById('submitVoucherBtn').addEventListener('click', ()=>{
   const note = document.getElementById('vNote').value.trim();
   const rangeLabel = from===to ? prettyDate(from) : `${prettyDate(from)} — ${prettyDate(to)}`;
   if(!confirm(`${rangeLabel}-এর ${toBn(list.length)} টি খরচ, মোট ${money(total)} টাকা ভাউচার হিসেবে জমা দেওয়া হবে। এগোতে চান?`)) return;
-  const batch = { id: Date.now().toString(36)+Math.random().toString(36).slice(2,7), fromDate:from, toDate:to, submittedDate: todayStr(), total, count:list.length, note, createdAt:new Date().toISOString() };
+  const serials = list.map(e=>e.voucherNo||0);
+  const serialFrom = Math.min(...serials), serialTo = Math.max(...serials);
+  const batch = { id: Date.now().toString(36)+Math.random().toString(36).slice(2,7), fromDate:from, toDate:to, serialFrom, serialTo, submittedDate: todayStr(), total, count:list.length, note, createdAt:new Date().toISOString() };
   list.forEach(e=>{ e.voucher = true; e.voucherBatchId = batch.id; });
   voucherBatches.push(batch);
   saveExp(); saveBatches();
