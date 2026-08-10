@@ -167,18 +167,19 @@
 
   <div class="summary-grid no-print">
     <div class="sum-card expense">
-      <div class="lbl">জমা না দেওয়া খরচ</div>
+      <div class="lbl">জমা না দেওয়া খরচ (বাকি ভাউচার)</div>
       <div class="val" id="sumCurrentExpense">৳ ০</div>
     </div>
     <div class="sum-card income">
-      <div class="lbl">মোট জমা পাওয়া টাকা</div>
+      <div class="lbl">চলতি দফার জমা টাকা</div>
       <div class="val" id="sumIncome">৳ ০</div>
     </div>
     <div class="sum-card balance">
-      <div class="lbl">হাতে আছে (আনুমানিক)</div>
+      <div class="lbl" id="sumBalanceLabel">আপনি পাবেন</div>
       <div class="val" id="sumBalance">৳ ০</div>
     </div>
   </div>
+  <p class="no-print" style="font-size:12px; color:var(--ink-soft); margin:-12px 0 18px; text-align:center;">"আপনি পাবেন / অফিস পাবে" = জমা টাকা − বাকি (জমা না দেওয়া) ভাউচার, সর্বশেষ নিষ্পত্তির পর থেকে</p>
 
   <div class="main-tabs no-print">
     <button class="btn btn-outline active" id="navExpense">🧾 খরচের হিসাব</button>
@@ -386,13 +387,13 @@
   <!-- RECONCILIATION SECTION (income vs expense net) -->
   <div id="sectionRecon" class="hidden no-print">
     <div class="card">
-      <h2>মোট জমা বনাম মোট খরচ — নিষ্পত্তি</h2>
+      <h2>জমা টাকা বনাম জমা দেওয়া ভাউচার — নিষ্পত্তি</h2>
       <p style="font-size:13.5px; color:var(--ink-soft); margin-top:-4px;">
-        আপনাকে যত টাকা দেওয়া হয়েছে (জমা) আর আপনি যত টাকা খরচ করেছেন (মোট খরচ) — এই দুইটা প্লাস-মাইনাস করে হিসাব করা হয়। এখানে "সর্বশেষ নিষ্পত্তির পর থেকে" হিসাব দেখানো হচ্ছে।
+        আপনাকে যত টাকা দেওয়া হয়েছে, আর তার বিপরীতে আপনি যত টাকার ভাউচার জমা দিয়েছেন (শুধু জমা দেওয়া ভাউচার, বাকি থাকা ভাউচার নয়) — এই দুইটা মিলিয়ে হিসাব হবে। "সর্বশেষ নিষ্পত্তির পর থেকে" হিসাব দেখানো হচ্ছে।
       </p>
       <div class="summary-grid" style="margin-bottom:6px;">
-        <div class="sum-card income"><div class="lbl">এই দফায় মোট জমা</div><div class="val" id="reconIncome">৳ ০</div></div>
-        <div class="sum-card expense"><div class="lbl">এই দফায় মোট খরচ</div><div class="val" id="reconExpense">৳ ০</div></div>
+        <div class="sum-card income"><div class="lbl">এই দফায় জমা পাওয়া টাকা</div><div class="val" id="reconIncome">৳ ০</div></div>
+        <div class="sum-card expense"><div class="lbl">এই দফায় জমা দেওয়া ভাউচার</div><div class="val" id="reconExpense">৳ ০</div></div>
         <div class="sum-card balance"><div class="lbl" id="reconNetLabel">নিট হিসাব</div><div class="val" id="reconNet">৳ ০</div></div>
       </div>
       <div class="form-grid">
@@ -510,15 +511,27 @@ function unreconciledIncomeTotal(){
   return incomes.filter(i=>!i.reconciled).reduce((s,i)=>s+Number(i.amount),0);
 }
 function unreconciledExpenseTotal(){
-  return expenses.filter(e=>!e.reconciled).reduce((s,e)=>s+Number(e.amount),0);
+  // Only vouchers that have actually been submitted count against the money given —
+  // pending (not-yet-submitted) expenses aren't "proven" to the office yet, so they
+  // stay out of this reconciliation until they're submitted as vouchers.
+  return expenses.filter(e=>e.voucher && !e.reconciled).reduce((s,e)=>s+Number(e.amount),0);
 }
 
 function updateSummary(){
   const pending = pendingExpenseTotal();
-  const inc = totalIncome();
+  const incCycle = unreconciledIncomeTotal();
+  // Jama taka minus only the vouchers not yet submitted — submitted vouchers are
+  // already accounted for through the formal reconciliation, so they don't count here.
+  const net = incCycle - pending; // positive: office will receive back; negative: you will receive
   document.getElementById('sumCurrentExpense').textContent = money(pending);
-  document.getElementById('sumIncome').textContent = money(inc);
-  document.getElementById('sumBalance').textContent = money(inc - allExpenseTotal());
+  document.getElementById('sumIncome').textContent = money(incCycle);
+  if(net >= 0){
+    document.getElementById('sumBalanceLabel').textContent = 'অফিস পাবে';
+    document.getElementById('sumBalance').textContent = money(net);
+  } else {
+    document.getElementById('sumBalanceLabel').textContent = 'আপনি পাবেন';
+    document.getElementById('sumBalance').textContent = money(Math.abs(net));
+  }
 }
 
 function renderRecon(){
@@ -528,7 +541,7 @@ function renderRecon(){
   document.getElementById('reconIncome').textContent = money(inc);
   document.getElementById('reconExpense').textContent = money(exp);
   if(net >= 0){
-    document.getElementById('reconNetLabel').textContent = 'আপনার কাছে জমা আছে (ফেরত দিতে হবে)';
+    document.getElementById('reconNetLabel').textContent = 'অফিস পাবে';
     document.getElementById('reconNet').textContent = money(net);
   } else {
     document.getElementById('reconNetLabel').textContent = 'আপনি পাবেন';
@@ -850,7 +863,7 @@ document.getElementById('reconBtn').addEventListener('click', ()=>{
     createdAt: new Date().toISOString()
   });
   incomes.forEach(i=>{ if(!i.reconciled) i.reconciled = true; });
-  expenses.forEach(e=>{ if(!e.reconciled) e.reconciled = true; });
+  expenses.forEach(e=>{ if(e.voucher && !e.reconciled) e.reconciled = true; });
   saveRecon(); saveInc(); saveExp();
   document.getElementById('reconNote').value = '';
   renderRecon();
