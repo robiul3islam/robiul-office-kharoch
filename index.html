@@ -184,6 +184,7 @@
     <button class="btn btn-outline active" id="navExpense">🧾 খরচের হিসাব</button>
     <button class="btn btn-outline" id="navIncome">💰 জমা টাকার হিসাব</button>
     <button class="btn btn-outline" id="navSettle">🎫 ভাউচার জমা</button>
+    <button class="btn btn-outline" id="navRecon">🧮 হিসাব নিষ্পত্তি</button>
   </div>
 
   <!-- EXPENSE SECTION -->
@@ -237,6 +238,7 @@
         <button class="btn btn-outline active" id="tabToday">📅 আজকের খরচ</button>
         <button class="btn btn-outline" id="tabAll">📖 সব খরচ</button>
         <button class="btn btn-outline" id="tabRange">🗓️ তারিখ অনুযায়ী</button>
+        <button class="btn btn-outline" id="tabPending">🕗 বাকি ভাউচার</button>
         <button class="btn btn-outline" id="tabVouchers">🎫 জমা দেওয়া ভাউচার</button>
       </div>
       <div class="toolbar" id="rangeToolbar" style="display:none;">
@@ -265,6 +267,7 @@
         <div class="title" id="listTitle">আজকের খরচের হিসাব</div>
         <div class="total" id="listTotal">৳ ০</div>
       </div>
+      <p id="listSubtext" style="font-size:13px; color:var(--ink-soft); margin:2px 0 0; display:none;"></p>
 
       <table class="desktop-table">
         <thead>
@@ -380,6 +383,37 @@
     </div>
   </div>
 
+  <!-- RECONCILIATION SECTION (income vs expense net) -->
+  <div id="sectionRecon" class="hidden no-print">
+    <div class="card">
+      <h2>মোট জমা বনাম মোট খরচ — নিষ্পত্তি</h2>
+      <p style="font-size:13.5px; color:var(--ink-soft); margin-top:-4px;">
+        আপনাকে যত টাকা দেওয়া হয়েছে (জমা) আর আপনি যত টাকা খরচ করেছেন (মোট খরচ) — এই দুইটা প্লাস-মাইনাস করে হিসাব করা হয়। এখানে "সর্বশেষ নিষ্পত্তির পর থেকে" হিসাব দেখানো হচ্ছে।
+      </p>
+      <div class="summary-grid" style="margin-bottom:6px;">
+        <div class="sum-card income"><div class="lbl">এই দফায় মোট জমা</div><div class="val" id="reconIncome">৳ ০</div></div>
+        <div class="sum-card expense"><div class="lbl">এই দফায় মোট খরচ</div><div class="val" id="reconExpense">৳ ০</div></div>
+        <div class="sum-card balance"><div class="lbl" id="reconNetLabel">নিট হিসাব</div><div class="val" id="reconNet">৳ ০</div></div>
+      </div>
+      <div class="form-grid">
+        <div class="field full"><label for="reconNote">নোট (ঐচ্ছিক)</label><input type="text" id="reconNote" placeholder="যেমনঃ নগদে পরিশোধ করে দিলাম"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-red" id="reconBtn" style="flex:2;">✅ এই হিসাব নিষ্পত্তি/পরিশোধ করা হলো</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ledger-head"><div class="title">নিষ্পত্তির ইতিহাস</div></div>
+      <table class="desktop-table">
+        <thead><tr><th style="width:100px;">তারিখ</th><th style="width:100px;">জমা</th><th style="width:100px;">খরচ</th><th style="width:150px;">ফলাফল</th><th>নোট</th></tr></thead>
+        <tbody id="reconTableBody"></tbody>
+      </table>
+      <div class="mobile-list" id="reconMobileList"></div>
+      <div class="empty" id="reconEmptyState" style="display:none;"><span class="big">🧮</span>এখনো কোনো নিষ্পত্তি করা হয়নি</div>
+    </div>
+  </div>
+
   <div class="sign-row print-only">
     <div class="sign-box">প্রস্তুতকারীর স্বাক্ষর</div>
     <div class="sign-box">অনুমোদনকারীর স্বাক্ষর</div>
@@ -405,9 +439,9 @@ function prettyDate(dateStr){
 }
 function escapeHtml(str){ const div = document.createElement('div'); div.textContent = str||''; return div.innerHTML; }
 
-const K_EXP = 'okh-expenses-v2', K_INC = 'okh-incomes-v2', K_BATCH = 'okh-voucher-batches-v1';
+const K_EXP = 'okh-expenses-v2', K_INC = 'okh-incomes-v2', K_BATCH = 'okh-voucher-batches-v1', K_RECON = 'okh-reconciliations-v1';
 const OLD_KEY = 'robiul-office-kharoch-v1';
-let expenses = [], incomes = [], voucherBatches = [];
+let expenses = [], incomes = [], voucherBatches = [], reconciliations = [];
 
 function migrateOldData(){
   const hasNew = localStorage.getItem(K_EXP);
@@ -436,11 +470,13 @@ function loadAll(){
   try{ expenses = JSON.parse(localStorage.getItem(K_EXP) || '[]'); }catch(e){ expenses = []; }
   try{ incomes = JSON.parse(localStorage.getItem(K_INC) || '[]'); }catch(e){ incomes = []; }
   try{ voucherBatches = JSON.parse(localStorage.getItem(K_BATCH) || '[]'); }catch(e){ voucherBatches = []; }
+  try{ reconciliations = JSON.parse(localStorage.getItem(K_RECON) || '[]'); }catch(e){ reconciliations = []; }
   backfillVoucherNumbers();
 }
 function saveExp(){ localStorage.setItem(K_EXP, JSON.stringify(expenses)); }
 function saveInc(){ localStorage.setItem(K_INC, JSON.stringify(incomes)); }
 function saveBatches(){ localStorage.setItem(K_BATCH, JSON.stringify(voucherBatches)); }
+function saveRecon(){ localStorage.setItem(K_RECON, JSON.stringify(reconciliations)); }
 
 const K_COUNTER = 'okh-voucher-counter-v1';
 function nextVoucherNo(){
@@ -470,6 +506,12 @@ function allExpenseTotal(){
 function totalIncome(){
   return incomes.reduce((s,i)=>s+Number(i.amount),0);
 }
+function unreconciledIncomeTotal(){
+  return incomes.filter(i=>!i.reconciled).reduce((s,i)=>s+Number(i.amount),0);
+}
+function unreconciledExpenseTotal(){
+  return expenses.filter(e=>!e.reconciled).reduce((s,e)=>s+Number(e.amount),0);
+}
 
 function updateSummary(){
   const pending = pendingExpenseTotal();
@@ -477,6 +519,41 @@ function updateSummary(){
   document.getElementById('sumCurrentExpense').textContent = money(pending);
   document.getElementById('sumIncome').textContent = money(inc);
   document.getElementById('sumBalance').textContent = money(inc - allExpenseTotal());
+}
+
+function renderRecon(){
+  const inc = unreconciledIncomeTotal();
+  const exp = unreconciledExpenseTotal();
+  const net = inc - exp; // positive: money still with Rabiul (payable back). negative: Rabiul should receive more.
+  document.getElementById('reconIncome').textContent = money(inc);
+  document.getElementById('reconExpense').textContent = money(exp);
+  if(net >= 0){
+    document.getElementById('reconNetLabel').textContent = 'আপনার কাছে জমা আছে (ফেরত দিতে হবে)';
+    document.getElementById('reconNet').textContent = money(net);
+  } else {
+    document.getElementById('reconNetLabel').textContent = 'আপনি পাবেন';
+    document.getElementById('reconNet').textContent = money(Math.abs(net));
+  }
+
+  const list = reconciliations.slice().sort((a,b)=> b.createdAt.localeCompare(a.createdAt));
+  const tbody = document.getElementById('reconTableBody');
+  const mobileList = document.getElementById('reconMobileList');
+  const emptyState = document.getElementById('reconEmptyState');
+  tbody.innerHTML=''; mobileList.innerHTML='';
+  if(list.length===0){ emptyState.style.display='block'; }
+  else{
+    emptyState.style.display='none';
+    list.forEach(r=>{
+      const resultLabel = r.net >= 0 ? `আপনার কাছে ছিল ${money(r.net)}` : `আপনি পেয়েছেন ${money(Math.abs(r.net))}`;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="date-col">${prettyDate(r.date)}</td><td class="amt">${money(r.incomeAtTime)}</td><td class="amt">${money(r.expenseAtTime)}</td><td>${resultLabel}</td><td>${escapeHtml(r.note||'—')}</td>`;
+      tbody.appendChild(tr);
+      const div = document.createElement('div');
+      div.className='m-row';
+      div.innerHTML = `<div class="m-top"><span>${prettyDate(r.date)}</span></div><div class="m-desc">${resultLabel} · ${escapeHtml(r.note||'')}</div><div class="m-bottom"><span>জমা ${money(r.incomeAtTime)} · খরচ ${money(r.expenseAtTime)}</span></div>`;
+      mobileList.appendChild(div);
+    });
+  }
 }
 
 function updateDatalists(){
@@ -499,6 +576,7 @@ function filteredExpenses(){
   if(expMode === 'today') list = expenses.filter(e => e.date === todayStr());
   else if(expMode === 'range' && rangeFrom && rangeTo) list = expenses.filter(e => e.date >= rangeFrom && e.date <= rangeTo);
   else if(expMode === 'vouchers') list = expenses.filter(e => e.voucher);
+  else if(expMode === 'pending') list = expenses.filter(e => !e.voucher);
   else list = expenses.slice();
 
   const cat = document.getElementById('catFilter').value;
@@ -516,10 +594,20 @@ function renderExpenses(){
   if(expMode==='all') title = 'সকল খরচের হিসাব';
   if(expMode==='range' && rangeFrom && rangeTo) title = `${prettyDate(rangeFrom)} থেকে ${prettyDate(rangeTo)} পর্যন্ত`;
   if(expMode==='vouchers') title = 'জমা দেওয়া ভাউচারসমূহ';
+  if(expMode==='pending') title = 'বাকি (জমা না দেওয়া) ভাউচারসমূহ';
   document.getElementById('listTitle').textContent = title;
   document.getElementById('listTotal').textContent = money(total);
   document.getElementById('printTitle').textContent = 'অফিস খরচের ভাউচার — ' + title;
   document.getElementById('printMeta').textContent = `মোট এন্ট্রি: ${toBn(list.length)} টি · সর্বমোট: ${money(total)}`;
+
+  const subtext = document.getElementById('listSubtext');
+  if(expMode==='pending' && list.length>0){
+    const dates = list.map(e=>e.date).sort();
+    subtext.style.display='block';
+    subtext.textContent = `${prettyDate(dates[0])} থেকে ${prettyDate(dates[dates.length-1])} পর্যন্ত মোট ${toBn(list.length)} টি ভাউচার এখনো জমা দেওয়া হয়নি`;
+  } else {
+    subtext.style.display='none';
+  }
 
   const tbody = document.getElementById('tableBody');
   const mobileList = document.getElementById('mobileList');
@@ -726,12 +814,13 @@ function renderAll(){
 
 /* ---- Nav switching ---- */
 function showSection(id){
-  ['sectionExpense','sectionIncome','sectionSettle'].forEach(s=>{
+  ['sectionExpense','sectionIncome','sectionSettle','sectionRecon'].forEach(s=>{
     document.getElementById(s).classList.toggle('hidden', s!==id);
   });
   document.getElementById('navExpense').classList.toggle('active', id==='sectionExpense');
   document.getElementById('navIncome').classList.toggle('active', id==='sectionIncome');
   document.getElementById('navSettle').classList.toggle('active', id==='sectionSettle');
+  document.getElementById('navRecon').classList.toggle('active', id==='sectionRecon');
 }
 document.getElementById('navExpense').addEventListener('click', ()=>showSection('sectionExpense'));
 document.getElementById('navIncome').addEventListener('click', ()=>showSection('sectionIncome'));
@@ -740,6 +829,32 @@ document.getElementById('navSettle').addEventListener('click', ()=>{
   if(!document.getElementById('vFromDate').value) document.getElementById('vFromDate').value = todayStr();
   if(!document.getElementById('vToDate').value) document.getElementById('vToDate').value = todayStr();
   updateVoucherPreview();
+});
+document.getElementById('navRecon').addEventListener('click', ()=>{
+  showSection('sectionRecon');
+  renderRecon();
+});
+
+/* ---- Reconciliation (income vs expense net settle) ---- */
+document.getElementById('reconBtn').addEventListener('click', ()=>{
+  const inc = unreconciledIncomeTotal();
+  const exp = unreconciledExpenseTotal();
+  const net = inc - exp;
+  if(inc === 0 && exp === 0){ alert('নিষ্পত্তি করার মতো কোনো নতুন জমা বা খরচ নেই'); return; }
+  const note = document.getElementById('reconNote').value.trim();
+  const resultLabel = net >= 0 ? `আপনার কাছে ছিল ${money(net)}, সেটা ফেরত দেওয়া হয়েছে` : `আপনি ${money(Math.abs(net))} পেয়েছেন`;
+  if(!confirm(`${resultLabel} ধরে এই দফার হিসাব বন্ধ করে নতুন দফা শুরু করা হবে। এগোতে চান?`)) return;
+  reconciliations.push({
+    id: Date.now().toString(36)+Math.random().toString(36).slice(2,7),
+    date: todayStr(), incomeAtTime: inc, expenseAtTime: exp, net, note,
+    createdAt: new Date().toISOString()
+  });
+  incomes.forEach(i=>{ if(!i.reconciled) i.reconciled = true; });
+  expenses.forEach(e=>{ if(!e.reconciled) e.reconciled = true; });
+  saveRecon(); saveInc(); saveExp();
+  document.getElementById('reconNote').value = '';
+  renderRecon();
+  alert('নিষ্পত্তি করা হয়েছে। নতুন দফা এখন থেকে শুরু হলো।');
 });
 
 /* ---- Expense form ---- */
@@ -771,7 +886,7 @@ document.getElementById('addBtn').addEventListener('click', ()=>{
 });
 
 function setExpTab(id){
-  ['tabToday','tabAll','tabRange','tabVouchers'].forEach(t=>{
+  ['tabToday','tabAll','tabRange','tabVouchers','tabPending'].forEach(t=>{
     document.getElementById(t).classList.toggle('active', t===id);
   });
   document.getElementById('rangeToolbar').style.display = (id==='tabRange') ? 'flex' : 'none';
@@ -779,6 +894,7 @@ function setExpTab(id){
 document.getElementById('tabToday').addEventListener('click', ()=>{ expMode='today'; setExpTab('tabToday'); renderAll(); });
 document.getElementById('tabAll').addEventListener('click', ()=>{ expMode='all'; setExpTab('tabAll'); renderAll(); });
 document.getElementById('tabVouchers').addEventListener('click', ()=>{ expMode='vouchers'; setExpTab('tabVouchers'); renderAll(); });
+document.getElementById('tabPending').addEventListener('click', ()=>{ expMode='pending'; setExpTab('tabPending'); renderAll(); });
 document.getElementById('tabRange').addEventListener('click', ()=>{
   expMode='range'; setExpTab('tabRange');
   if(!rangeFrom) document.getElementById('fromDate').value = todayStr();
