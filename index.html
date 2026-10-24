@@ -254,10 +254,6 @@
     <button id="installBtn">ইনস্টল করুন</button>
   </div>
 
-  <div id="backupBanner" class="no-print" style="display:none; align-items:center; justify-content:space-between; gap:10px; background:var(--red-soft); color:var(--red); border-radius:10px; padding:11px 15px; margin-bottom:16px; font-size:13px; font-weight:600;">
-    <span>⚠️ আপনি এখনো কোনো ব্যাকআপ নেননি — ফোন হারালে/রিসেট হলে ডেটা হারিয়ে যেতে পারে</span>
-    <button id="goBackupBtn" style="background:var(--red); color:#fff; border:none; border-radius:7px; padding:7px 13px; font-weight:700; font-size:12.5px; cursor:pointer; white-space:nowrap;">ব্যাকআপ নিন</button>
-  </div>
 
   <header>
     <div class="sync-pill no-print" id="syncPill" style="display:none;"></div>
@@ -492,15 +488,16 @@
   <!-- RECONCILIATION SECTION (income vs expense net) -->
   <div id="sectionRecon" class="hidden no-print">
     <div class="card">
-      <h2>জমা টাকা বনাম জমা দেওয়া ভাউচার — নিষ্পত্তি</h2>
+      <h2>জমা টাকা বনাম বাকি ভাউচার — নিষ্পত্তি</h2>
       <p style="font-size:13.5px; color:var(--ink-soft); margin-top:-4px;">
-        আপনাকে যত টাকা দেওয়া হয়েছে, আর তার বিপরীতে আপনি যত টাকার ভাউচার জমা দিয়েছেন (শুধু জমা দেওয়া ভাউচার, বাকি থাকা ভাউচার নয়) — এই দুইটা মিলিয়ে হিসাব হবে। "সর্বশেষ নিষ্পত্তির পর থেকে" হিসাব দেখানো হচ্ছে।
+        আপনাকে যত টাকা দেওয়া হয়েছে, তা থেকে শুধু <b>জমা-না-দেওয়া (বাকি) ভাউচারগুলো</b> মাইনাস হবে। যে ভাউচার জমা দেওয়া হয়ে গেছে, তার হিসাব শেষ — সেগুলো এখানে ধরা হয় না। "সর্বশেষ নিষ্পত্তির পর থেকে" হিসাব দেখানো হচ্ছে।
       </p>
       <div class="summary-grid" style="margin-bottom:6px;">
         <div class="sum-card income"><div class="lbl">এই দফায় জমা পাওয়া টাকা</div><div class="val" id="reconIncome">৳ ০</div></div>
-        <div class="sum-card expense"><div class="lbl">এই দফায় জমা দেওয়া ভাউচার</div><div class="val" id="reconExpense">৳ ০</div></div>
+        <div class="sum-card expense"><div class="lbl">এই দফায় জমা-না-দেওয়া (বাকি) ভাউচার — মাইনাস</div><div class="val" id="reconExpense">৳ ০</div></div>
         <div class="sum-card balance"><div class="lbl" id="reconNetLabel">নিট হিসাব</div><div class="val" id="reconNet">৳ ০</div></div>
       </div>
+      <div id="reconItems" style="margin-bottom:10px;"></div>
       <div class="form-grid">
         <div class="field full"><label for="reconNote">নোট (ঐচ্ছিক)</label><input type="text" id="reconNote" placeholder="যেমনঃ নগদে পরিশোধ করে দিলাম"></div>
       </div>
@@ -664,10 +661,7 @@ function updateLastBackupNote(){
   checkBackupBanner();
 }
 function checkBackupBanner(){
-  const banner = document.getElementById('backupBanner');
-  const hasData = expenses.length>0 || incomes.length>0;
-  const last = localStorage.getItem(K_LAST_BACKUP);
-  banner.style.display = (hasData && !last) ? 'flex' : 'none';
+  /* ব্যাকআপ সতর্কবার্তা সরানো হয়েছে: Google Drive-এ অটো ব্যাকআপ চলে */
 }
 function importBackup(file){
   const reader = new FileReader();
@@ -694,8 +688,12 @@ function importBackup(file){
 let expMode = 'today'; // today | all | range | vouchers
 let rangeFrom = null, rangeTo = null;
 
+// জমা দেওয়া হয়নি + এখনো কোনো নিষ্পত্তিতে ধরা হয়নি = এই দফায় জমা টাকা থেকে মাইনাস হবে
+function unsettledPending(){
+  return expenses.filter(e => !e.voucher && !e.reconciled);
+}
 function pendingExpenseTotal(){
-  return expenses.filter(e => !e.voucher).reduce((s,e)=>s+Number(e.amount),0);
+  return unsettledPending().reduce((s,e)=>s+Number(e.amount),0);
 }
 function allExpenseTotal(){
   return expenses.reduce((s,e)=>s+Number(e.amount),0);
@@ -707,17 +705,15 @@ function unreconciledIncomeTotal(){
   return incomes.filter(i=>!i.reconciled).reduce((s,i)=>s+Number(i.amount),0);
 }
 function unreconciledExpenseTotal(){
-  // Only vouchers that have actually been submitted count against the money given —
-  // pending (not-yet-submitted) expenses aren't "proven" to the office yet, so they
-  // stay out of this reconciliation until they're submitted as vouchers.
-  return expenses.filter(e=>e.voucher && !e.reconciled).reduce((s,e)=>s+Number(e.amount),0);
+  // জমা দেওয়া ভাউচারের হিসাব আগেই শেষ, তাই সেগুলো ধরা হয় না।
+  // শুধু জমা-না-দেওয়া (বাকি) ভাউচারগুলো জমা টাকা থেকে মাইনাস হয়।
+  return pendingExpenseTotal();
 }
 
 function updateSummary(){
   const pending = pendingExpenseTotal();
   const incCycle = unreconciledIncomeTotal();
-  // Jama taka minus only the vouchers not yet submitted — submitted vouchers are
-  // already accounted for through the formal reconciliation, so they don't count here.
+  // জমা টাকা − শুধু জমা-না-দেওয়া ভাউচার। জমা দেওয়া ভাউচারের হিসাব শেষ, সেগুলো ধরা হয় না।
   const net = incCycle - pending; // positive: office will receive back; negative: you will receive
   document.getElementById('sumCurrentExpense').textContent = money(pending);
   document.getElementById('sumIncome').textContent = money(incCycle);
@@ -736,6 +732,11 @@ function renderRecon(){
   const net = inc - exp; // positive: money still with Rabiul (payable back). negative: Rabiul should receive more.
   document.getElementById('reconIncome').textContent = money(inc);
   document.getElementById('reconExpense').textContent = money(exp);
+  const items = unsettledPending().slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'') || (a.voucherNo||0)-(b.voucherNo||0));
+  document.getElementById('reconItems').innerHTML = items.length
+    ? '<div style="font-size:13px; font-weight:600; color:var(--ink-soft); margin:10px 0 6px;">জমা টাকা থেকে মাইনাস হচ্ছে এই '+toBn(items.length)+'টি বাকি ভাউচার:</div>' +
+      items.map(e=>`<div style="display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-bottom:1px dashed var(--line); font-size:13.5px;"><span>${prettyDate(e.date)} · ${escapeHtml(e.description||'')}</span><b style="white-space:nowrap;">${money(e.amount)}</b></div>`).join('')
+    : '<div style="font-size:13px; color:var(--ink-soft); margin:10px 0;">কোনো বাকি (জমা না দেওয়া) ভাউচার নেই।</div>';
   if(net >= 0){
     document.getElementById('reconNetLabel').textContent = 'অফিস পাবে';
     document.getElementById('reconNet').textContent = money(net);
@@ -1065,9 +1066,11 @@ document.getElementById('reconBtn').addEventListener('click', ()=>{
     createdAt: new Date().toISOString()
   });
   incomes.forEach(i=>{ if(!i.reconciled) i.reconciled = true; });
-  expenses.forEach(e=>{ if(e.voucher && !e.reconciled) e.reconciled = true; });
+  // যে বাকি ভাউচারগুলো এই নিষ্পত্তিতে মাইনাস হলো, সেগুলো আর পরের দফায় ধরা হবে না
+  expenses.forEach(e=>{ if(!e.voucher && !e.reconciled) e.reconciled = true; });
   saveRecon(); saveInc(); saveExp();
   document.getElementById('reconNote').value = '';
+  renderAll();
   renderRecon();
   alert('নিষ্পত্তি করা হয়েছে। নতুন দফা এখন থেকে শুরু হলো।');
 });
@@ -1173,7 +1176,6 @@ document.getElementById('submitVoucherBtn').addEventListener('click', ()=>{
 
 /* ---- Backup buttons ---- */
 document.getElementById('exportBtn').addEventListener('click', exportBackup);
-document.getElementById('goBackupBtn').addEventListener('click', ()=>{ showSection('sectionBackup'); updateLastBackupNote(); });
 document.getElementById('importBtn').addEventListener('click', ()=>{
   const fileInput = document.getElementById('importFile');
   if(!fileInput.files || fileInput.files.length===0){ alert('প্রথমে একটা ব্যাকআপ ফাইল বেছে দিন'); return; }
