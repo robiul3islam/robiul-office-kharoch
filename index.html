@@ -213,6 +213,18 @@
   html.mode-mobile .main-tabs .ti{font-size:21px;}
   html.mode-mobile .view-tabs .btn{font-size:14.5px;}
 
+  .help-pill{position:absolute; right:20px; top:16px; z-index:2; background:var(--brass); color:#2b2110; border:none; border-radius:16px; padding:6px 13px; font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer;}
+  html.mode-mobile .help-pill{right:14px; top:12px; font-size:12px; padding:6px 11px;}
+  html.mode-mobile header .eyebrow{padding-right:150px;}
+  #helpModal{position:fixed; inset:0; z-index:2000; background:rgba(20,16,8,0.6); display:none; align-items:flex-start; justify-content:center; padding:16px; overflow-y:auto;}
+  #helpModal .box{background:var(--paper); border-radius:14px; max-width:720px; width:100%; padding:18px; margin:auto; box-shadow:var(--shadow);}
+  #helpModal h2{font-family:'Noto Serif Bengali',serif; color:var(--green-deep); margin:0 0 10px; font-size:19px; display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  #helpModal .x{background:none; border:none; font-size:26px; line-height:1; cursor:pointer; color:var(--ink-soft);}
+  #helpModal .vid{position:relative; padding-top:56.25%; background:#000; border-radius:10px; overflow:hidden; margin-bottom:12px;}
+  #helpModal .vid iframe{position:absolute; inset:0; width:100%; height:100%; border:0;}
+  #helpModal .novid{background:var(--paper-deep); border:1px dashed var(--line); border-radius:10px; padding:18px; text-align:center; color:var(--ink-soft); margin-bottom:12px; font-size:14px;}
+  #helpModal ol{padding-left:20px; margin:8px 0 0; line-height:1.8; font-size:14.5px;}
+
   /* ভিউ বদলানোর বাটন */
   #viewToggle{background:none; border:1px solid var(--line); border-radius:14px; padding:4px 12px; font-family:inherit; font-size:12px; color:var(--ink-soft); cursor:pointer; margin-left:6px;}
 
@@ -285,6 +297,7 @@
 
   <header>
     <div class="sync-pill no-print" id="syncPill" style="display:none;"></div>
+    <button class="help-pill no-print" id="helpBtn" type="button">▶ কীভাবে ব্যবহার করবেন</button>
     <div class="eyebrow">হিসাবের খাতা</div>
     <h1>অফিস খরচ ও হিসাব</h1>
     <div class="sub">আজ, <span id="todayDate"></span></div>
@@ -586,6 +599,21 @@
   </div>
 
   <footer class="note no-print">অফিস খরচ ও হিসাব · এই ডিভাইসে আপনার তথ্য নিরাপদে সংরক্ষিত থাকে · <a href="privacy.html" style="color:inherit;">গোপনীয়তা নীতি</a> · <button id="viewToggle" type="button"></button></footer>
+</div>
+
+<div id="helpModal" class="no-print" role="dialog" aria-modal="true">
+  <div class="box">
+    <h2><span>📖 অ্যাপটা কীভাবে ব্যবহার করবেন</span><button class="x" id="helpClose" type="button" aria-label="বন্ধ করুন">×</button></h2>
+    <div id="helpVideoArea"></div>
+    <ol>
+      <li><b>লগইন:</b> Google (Gmail) দিয়ে লগইন করুন। আপনার সব হিসাব আপনার নিজের Google Drive-এ নিজে নিজেই জমা হবে।</li>
+      <li><b>খরচ লেখা:</b> "খরচের হিসাব" ট্যাবে খাত, বিবরণ ও টাকা লিখে "খরচ যোগ করুন" চাপুন।</li>
+      <li><b>টাকা পাওয়া:</b> "জমা টাকার হিসাব" ট্যাবে অফিস থেকে যত টাকা পেলেন তা লিখুন।</li>
+      <li><b>ভাউচার জমা:</b> "ভাউচার জমা" ট্যাব থেকে তারিখ বেছে বাকি খরচগুলো ভাউচার হিসেবে জমা দিন, অথবা প্রিন্ট করুন।</li>
+      <li><b>হিসাব নিষ্পত্তি:</b> এক চাপে হিসাব শেষ হবে। জমা টাকা থেকে বাকি ভাউচার মাইনাস হয়ে দেখাবে "আপনি পাবেন" না "অফিস পাবে", আর ভাউচারগুলো নিজে জমা হয়ে যাবে।</li>
+      <li><b>ব্যাকআপ:</b> আলাদা করে কিছু করতে হবে না, লেখার কয়েক সেকেন্ডেই Drive-এ ব্যাকআপ হয়। নতুন ফোনে একই Gmail দিয়ে ঢুকলেই সব ফিরে আসবে।</li>
+    </ol>
+  </div>
 </div>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -1447,6 +1475,25 @@ initSyncStartup();
     const st=document.getElementById('syncPill').dataset.state;
     if(st==='login'||st==='error'){ lastTap=Date.now(); pending()?uploadNow(true):syncFromDrive(true); }
   }, true);
+})();
+
+/* ---- সাহায্য ভিডিও ---- */
+// ভিডিও আপলোড করে লিংকটা এখানে বসান (YouTube লিংক দিলে অ্যাপের ভেতরেই চলবে)
+const HELP_VIDEO_URL = '';
+(function(){
+  const modal=document.getElementById('helpModal'), area=document.getElementById('helpVideoArea');
+  function build(){
+    const u=(HELP_VIDEO_URL||'').trim();
+    if(!u){ area.innerHTML='<div class="novid">🎬 ভিডিও টিউটোরিয়াল শীঘ্রই যোগ হবে। এর মধ্যে নিচের ধাপগুলো দেখুন।</div>'; return; }
+    const m=u.match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/)([\w-]{11})/);
+    if(m){ area.innerHTML='<div class="vid"><iframe src="https://www.youtube.com/embed/'+m[1]+'?rel=0" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>'; }
+    else { area.innerHTML='<div class="novid"><a class="btn btn-primary" style="display:inline-block; text-decoration:none;" href="'+u.replace(/"/g,'&quot;')+'" target="_blank" rel="noopener">▶ ভিডিওটি দেখুন</a></div>'; }
+  }
+  function close(){ modal.style.display='none'; area.innerHTML=''; }
+  document.getElementById('helpBtn').addEventListener('click',()=>{ build(); modal.style.display='flex'; });
+  document.getElementById('helpClose').addEventListener('click',close);
+  modal.addEventListener('click',e=>{ if(e.target===modal) close(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
 })();
 
 /* ---- মোবাইল / ডেস্কটপ ভিউ ---- */
