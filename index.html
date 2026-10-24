@@ -1058,8 +1058,22 @@ document.getElementById('reconBtn').addEventListener('click', ()=>{
   const net = inc - exp;
   if(inc === 0 && exp === 0){ alert('নিষ্পত্তি করার মতো কোনো নতুন জমা বা খরচ নেই'); return; }
   const note = document.getElementById('reconNote').value.trim();
+  const pendList = unsettledPending();
   const resultLabel = net >= 0 ? `আপনার কাছে ছিল ${money(net)}, সেটা ফেরত দেওয়া হয়েছে` : `আপনি ${money(Math.abs(net))} পেয়েছেন`;
-  if(!confirm(`${resultLabel} ধরে এই দফার হিসাব বন্ধ করে নতুন দফা শুরু করা হবে। এগোতে চান?`)) return;
+  const autoMsg = pendList.length ? `\n\nএই ${toBn(pendList.length)}টি বাকি ভাউচার (${money(exp)}) নিজে থেকেই "জমা দেওয়া" হয়ে যাবে।` : '';
+  if(!confirm(`${resultLabel} ধরে এই দফার হিসাব বন্ধ করে নতুন দফা শুরু করা হবে।${autoMsg}\n\nএগোতে চান?`)) return;
+  // বাকি ভাউচারগুলো অটো জমা: একটা ভাউচার-ব্যাচ বানিয়ে সবগুলো "জমা দেওয়া" করা
+  if(pendList.length){
+    const dates = pendList.map(e=>e.date).sort();
+    const serials = pendList.map(e=>e.voucherNo||0);
+    const batch = { id: Date.now().toString(36)+Math.random().toString(36).slice(2,7),
+      fromDate:dates[0], toDate:dates[dates.length-1],
+      serialFrom:Math.min(...serials), serialTo:Math.max(...serials),
+      submittedDate: todayStr(), total: exp, count: pendList.length,
+      note: 'হিসাব নিষ্পত্তির সাথে অটো জমা'+(note?' — '+note:''), createdAt: new Date().toISOString() };
+    pendList.forEach(e=>{ e.voucher = true; e.voucherBatchId = batch.id; });
+    voucherBatches.push(batch); saveBatches();
+  }
   reconciliations.push({
     id: Date.now().toString(36)+Math.random().toString(36).slice(2,7),
     date: todayStr(), incomeAtTime: inc, expenseAtTime: exp, net, note,
@@ -1067,7 +1081,7 @@ document.getElementById('reconBtn').addEventListener('click', ()=>{
   });
   incomes.forEach(i=>{ if(!i.reconciled) i.reconciled = true; });
   // যে বাকি ভাউচারগুলো এই নিষ্পত্তিতে মাইনাস হলো, সেগুলো আর পরের দফায় ধরা হবে না
-  expenses.forEach(e=>{ if(!e.voucher && !e.reconciled) e.reconciled = true; });
+  pendList.forEach(e=>{ e.reconciled = true; });
   saveRecon(); saveInc(); saveExp();
   document.getElementById('reconNote').value = '';
   renderAll();
