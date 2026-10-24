@@ -1,4 +1,4 @@
-const CACHE_NAME = 'office-kharoch-v15';
+const CACHE_NAME = 'office-kharoch-v16';
 const ASSETS = [
   './',
   './index.html',

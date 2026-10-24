@@ -195,6 +195,24 @@
   html.mode-mobile .main-tabs .btn.active{background:rgba(244,238,220,0.16); color:#fff;}
   html.mode-mobile .main-tabs .ti{display:block; margin:0 0 2px; font-size:19px;}
 
+  /* মোবাইল ভিউ: বড় লেখা, অ্যাপের মতো */
+  html.mode-mobile body{font-size:16px;}
+  html.mode-mobile label{font-size:13.5px;}
+  html.mode-mobile .card h2{font-size:18px;}
+  html.mode-mobile header h1{font-size:26px;}
+  html.mode-mobile header .sub{font-size:15px;}
+  html.mode-mobile .m-row{padding:12px 14px;}
+  html.mode-mobile .m-row .m-top{font-size:13.5px;}
+  html.mode-mobile .m-row .m-desc{font-size:17px;}
+  html.mode-mobile .m-row .m-amt{font-size:18px;}
+  html.mode-mobile .ledger-head .title{font-size:17px;}
+  html.mode-mobile .ledger-head .total{font-size:17px;}
+  html.mode-mobile .sum-card .lbl{font-size:13.5px;}
+  html.mode-mobile .sum-card .val{font-size:21px;}
+  html.mode-mobile .main-tabs .btn{font-size:11.5px;}
+  html.mode-mobile .main-tabs .ti{font-size:21px;}
+  html.mode-mobile .view-tabs .btn{font-size:14.5px;}
+
   /* ভিউ বদলানোর বাটন */
   #viewToggle{background:none; border:1px solid var(--line); border-radius:14px; padding:4px 12px; font-family:inherit; font-size:12px; color:var(--ink-soft); cursor:pointer; margin-left:6px;}
 
@@ -1192,12 +1210,12 @@ function touch(){
   localStorage.setItem(K_UPD, new Date().toISOString());
   if(SYNC_ENABLED && localStorage.getItem(K_SIGNED)){
     localStorage.setItem(K_PENDING,'1'); setSyncStatus('pending');
-    clearTimeout(uploadTimer); uploadTimer=setTimeout(()=>uploadNow(false),1500);
+    clearTimeout(uploadTimer); uploadTimer=setTimeout(()=>uploadNow(false),2000);
   }
 }
 function setSyncStatus(state){
   const pill=document.getElementById('syncPill');
-  const map={synced:'☁️ সিঙ্ক হয়েছে', pending:'⏳ সিঙ্ক বাকি', busy:'🔄 সিঙ্ক হচ্ছে…', login:'🔑 সিঙ্ক চালু করতে ট্যাপ করুন', error:'⚠️ সিঙ্ক হয়নি — ট্যাপ করুন'};
+  const map={synced:'☁️ সিঙ্ক হয়েছে'+(window.lastSyncAt?' · '+toBn(window.lastSyncAt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})):''), pending:'⏳ সিঙ্ক বাকি', busy:'🔄 সিঙ্ক হচ্ছে…', login:'🔑 সিঙ্ক চালু করতে ট্যাপ করুন', error:'⚠️ সিঙ্ক হয়নি — ট্যাপ করুন'};
   pill.dataset.state=state;
   if(!SYNC_ENABLED || state==='off'){ pill.style.display='none'; return; }
   pill.style.display='block'; pill.textContent=map[state]||'';
@@ -1255,7 +1273,7 @@ async function putFile(){
     const r=await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body:mp});
     driveFileId=(await r.json()).id;
   }
-  localStorage.removeItem(K_PENDING);
+  localStorage.removeItem(K_PENDING); window.lastSyncAt=new Date();
 }
 async function uploadNow(interactive){
   if(!SYNC_ENABLED || !localStorage.getItem(K_SIGNED)) return;
@@ -1296,7 +1314,7 @@ async function syncFromDrive(interactive){
         await putFile();
       }
     }
-    showGate(false); setSyncStatus('synced');
+    showGate(false); window.lastSyncAt=new Date(); setSyncStatus('synced');
   }catch(e){
     setSyncStatus(interactive?'error':'login');
     if(interactive){ const el=document.getElementById('loginErr'); if(el) el.textContent='লগইন হয়নি। ইন্টারনেট চেক করে আবার চেষ্টা করুন।'; }
@@ -1357,6 +1375,35 @@ function initSyncStartup(){
 loadAll();
 renderAll();
 initSyncStartup();
+
+/* ---- অটো ব্যাকআপ: ব্যর্থ হলে নিজে আবার চেষ্টা, ফিরে এলে পুরনো ডেটা টানা ---- */
+(function(){
+  if(!SYNC_ENABLED) return;
+  const signed=()=>!!localStorage.getItem(K_SIGNED);
+  const pending=()=>!!localStorage.getItem(K_PENDING);
+  const tokenOk=()=>!!accessToken && Date.now()<tokenExpiry;
+  let lastPull=Date.now(), lastTap=0;
+  // বাকি থাকলে প্রতি ৮ সেকেন্ডে আবার চেষ্টা
+  setInterval(()=>{ if(signed()&&pending()&&!syncBusy&&navigator.onLine&&tokenClient) uploadNow(false); }, 8000);
+  // ইন্টারনেট ফিরলে সাথে সাথে
+  window.addEventListener('online',()=>{ if(signed()&&pending()&&tokenClient) uploadNow(false); });
+  document.addEventListener('visibilitychange',()=>{
+    if(!signed()||!tokenClient) return;
+    if(document.visibilityState==='hidden'){
+      // অ্যাপ বন্ধ/ব্যাকগ্রাউন্ডে যাওয়ার আগে বাকি ডেটা পাঠানো
+      if(pending()&&!syncBusy&&tokenOk()){ clearTimeout(uploadTimer); uploadNow(false); }
+    } else if(!pending()&&!syncBusy&&Date.now()-lastPull>30000){
+      // অ্যাপে ফিরলে অন্য ডিভাইসের নতুন ডেটা থাকলে নিয়ে আসা
+      lastPull=Date.now(); syncFromDrive(false);
+    }
+  });
+  // টোকেনের মেয়াদ শেষ হয়ে নীরবে রিফ্রেশ না হলে, পরের ট্যাপেই সিঙ্ক
+  document.addEventListener('click',()=>{
+    if(!signed()||!tokenClient||syncBusy||Date.now()-lastTap<20000) return;
+    const st=document.getElementById('syncPill').dataset.state;
+    if(st==='login'||st==='error'){ lastTap=Date.now(); pending()?uploadNow(true):syncFromDrive(true); }
+  }, true);
+})();
 
 /* ---- মোবাইল / ডেস্কটপ ভিউ ---- */
 (function(){
