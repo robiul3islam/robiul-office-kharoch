@@ -1,7 +1,8 @@
-const CACHE_NAME = 'office-kharoch-v9';
+const CACHE_NAME = 'office-kharoch-v15';
 const ASSETS = [
   './',
   './index.html',
+  './privacy.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
@@ -24,6 +25,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
   event.respondWith(
     caches.match(event.request).then((cached) => {
       return cached || fetch(event.request).then((response) => {

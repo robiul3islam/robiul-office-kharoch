@@ -3,6 +3,7 @@
 
 এই ফোল্ডারে যা আছে:
 - index.html         (মূল টুল)
+- privacy.html       (গোপনীয়তা নীতি — Google Publish-এর জন্য লাগে)
 - manifest.json       (অ্যাপ হিসেবে ইনস্টল করার তথ্য)
 - service-worker.js   (অফলাইনে কাজ করার জন্য)
 - icon-192.png, icon-512.png  (অ্যাপ আইকন)
@@ -42,3 +43,10 @@
 কোনো খরচ নেই
 -------------
 GitHub Pages, ব্রাউজার ইনস্টল, এবং এই টুল — সবকিছুই সম্পূর্ণ ফ্রি। কোনো সাবস্ক্রিপশন বা পেমেন্ট লাগবে না।
+
+Google Cloud Console-এ (OAuth consent screen > Branding) যা বসাবেন
+-----------------------------------------------------------------
+- Application home page:        https://আপনার-ইউজারনেম.github.io/robiul-office-kharoch/
+- Application privacy policy:   https://আপনার-ইউজারনেম.github.io/robiul-office-kharoch/privacy.html
+- Authorized domain:            github.io
+(privacy.html অবশ্যই index.html-এর সাথে একই repository-তে আপলোড করতে হবে)

@@ -15,6 +15,27 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@500;600;700;800&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+/* ডিভাইস অনুযায়ী ভিউ: মোবাইল / ডেস্কটপ (অটো). হাতে বদলালে সেটাই মনে রাখে */
+(function(){
+  function pref(){ try{ var v=localStorage.getItem('viewPref'); return (v==='mobile'||v==='desktop')?v:'auto'; }catch(e){ return 'auto'; } }
+  function detect(){
+    var w=window.innerWidth||document.documentElement.clientWidth||1024;
+    var ua=/Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent||'');
+    var touch=false; try{ touch=window.matchMedia('(hover:none) and (pointer:coarse)').matches; }catch(e){}
+    if(w<700) return 'mobile';
+    if((ua||touch) && w<1024) return 'mobile';
+    return 'desktop';
+  }
+  window.applyViewMode=function(){
+    var p=pref(), m=(p==='auto')?detect():p, h=document.documentElement;
+    h.classList.toggle('mode-mobile', m==='mobile');
+    h.classList.toggle('mode-desktop', m==='desktop');
+    return {pref:p, mode:m};
+  };
+  window.applyViewMode();
+})();
+</script>
 <style>
   :root{
     --paper:#FBF6EA; --paper-deep:#F4EDDB; --line:#DDD0AC;
@@ -44,7 +65,6 @@
   header .sub{font-size:14px; color:#D9CFAF;}
 
   .summary-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:18px;}
-  @media (max-width:640px){ .summary-grid{grid-template-columns:1fr;} }
   .sum-card{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:14px 16px; box-shadow:var(--shadow);}
   .sum-card .lbl{font-size:12.5px; color:var(--ink-soft); font-weight:600; margin-bottom:4px;}
   .sum-card .val{font-family:'Noto Serif Bengali',serif; font-size:22px; font-weight:700;}
@@ -58,7 +78,6 @@
 
   .form-grid{display:grid; grid-template-columns: repeat(3, 1fr); gap:11px;}
   .form-grid .full{grid-column:1/-1;}
-  @media (max-width:640px){ .form-grid{grid-template-columns:1fr 1fr;} }
   label{font-size:12px; color:var(--ink-soft); font-weight:600; display:block; margin-bottom:4px;}
   input, select{
     width:100%; padding:9px 11px; border:1.5px solid var(--line); border-radius:8px;
@@ -113,16 +132,12 @@
   .empty .big{font-size:28px; display:block; margin-bottom:8px;}
 
   .mobile-list{display:none;}
-  @media (max-width:640px){
-    .desktop-table{display:none;}
-    .mobile-list{display:block;}
-    .m-row{border:1px solid var(--line); border-left:4px solid var(--red); border-radius:8px; padding:10px 12px; margin-bottom:9px; background:#fff;}
-    .m-row.income{border-left-color:var(--green-deep);}
-    .m-row .m-top{display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink-soft); align-items:center;}
-    .m-row .m-desc{font-size:14.5px; font-weight:600; margin:4px 0;}
-    .m-row .m-bottom{display:flex; justify-content:space-between; align-items:center; margin-top:4px;}
-    .m-row .m-amt{font-weight:700; color:var(--green-deep); font-family:'Noto Serif Bengali',serif;}
-  }
+  .m-row{border:1px solid var(--line); border-left:4px solid var(--red); border-radius:8px; padding:10px 12px; margin-bottom:9px; background:#fff;}
+  .m-row.income{border-left-color:var(--green-deep);}
+  .m-row .m-top{display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink-soft); align-items:center;}
+  .m-row .m-desc{font-size:14.5px; font-weight:600; margin:4px 0;}
+  .m-row .m-bottom{display:flex; justify-content:space-between; align-items:center; margin-top:4px;}
+  .m-row .m-amt{font-weight:700; color:var(--green-deep); font-family:'Noto Serif Bengali',serif;}
 
   footer.note{text-align:center; font-size:12px; color:var(--ink-soft); margin-top:16px;}
 
@@ -130,6 +145,58 @@
   #installBanner button{background:var(--green-deep); color:#F4EEDC; border:none; border-radius:7px; padding:7px 13px; font-weight:700; font-size:12.5px; cursor:pointer;}
 
   .hidden{display:none !important;}
+  .sync-pill{position:absolute; right:20px; bottom:16px; z-index:2; background:rgba(244,238,220,0.16); color:#F4EEDC; border:1px solid rgba(244,238,220,0.4); border-radius:14px; padding:4px 11px; font-size:12px; font-weight:600; cursor:pointer;}
+  #loginGate{position:fixed; inset:0; z-index:1000; background:var(--paper); display:none; align-items:center; justify-content:center; padding:24px;}
+  #loginGate .box{max-width:420px; width:100%; text-align:center;}
+  #loginGate h1{font-family:'Noto Serif Bengali',serif; color:var(--green-deep); font-size:28px; margin:8px 0;}
+  #loginGate p{color:var(--ink-soft); font-size:14.5px; line-height:1.7;}
+  #loginGate .gbtn{width:100%; padding:14px; font-size:16px; margin-top:14px;}
+  #loginErr{color:var(--red); font-size:13.5px; margin-top:10px; min-height:18px;}
+
+  /* ====== নেভ বাটনের আইকন + লেবেল ====== */
+  .main-tabs .ti{display:inline-block; margin-right:6px;}
+
+  /* ====== ডেস্কটপ ভিউ ====== */
+  html.mode-desktop body{padding:28px 28px 60px;}
+  html.mode-desktop .wrap{max-width:1240px; display:grid; grid-template-columns:250px minmax(0,1fr); column-gap:26px; align-items:start;}
+  html.mode-desktop .wrap > *{grid-column:1 / -1;}
+  html.mode-desktop .wrap > .main-tabs{grid-column:1; flex-direction:column; flex-wrap:nowrap; gap:6px; position:sticky; top:20px; margin-bottom:18px; background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:10px; box-shadow:var(--shadow);}
+  html.mode-desktop .wrap > [id^="section"]{grid-column:2;}
+  html.mode-desktop .main-tabs .btn{width:100%; text-align:left; padding:12px 14px; font-size:14.5px;}
+  html.mode-desktop header{padding:28px 32px;}
+  html.mode-desktop .summary-grid{grid-template-columns:repeat(3,1fr); gap:16px;}
+  html.mode-desktop .sum-card .val{font-size:26px;}
+  html.mode-desktop .desktop-table{display:table;}
+  html.mode-desktop .mobile-list{display:none;}
+  html.mode-desktop .form-grid{grid-template-columns:repeat(3,1fr);}
+  html.mode-desktop .btn:hover{filter:brightness(1.06);}
+  html.mode-desktop .btn-outline:not(.active):hover{background:var(--green-soft);}
+
+  /* ====== মোবাইল ভিউ ====== */
+  html.mode-mobile body{padding:12px 12px calc(96px + env(safe-area-inset-bottom));}
+  html.mode-mobile .wrap{max-width:560px;}
+  html.mode-mobile header{padding:16px 18px; margin-bottom:12px;}
+  html.mode-mobile .summary-grid{grid-template-columns:1fr; gap:8px; margin-bottom:12px;}
+  html.mode-mobile .sum-card{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 14px;}
+  html.mode-mobile .sum-card .lbl{margin:0; font-size:12.5px;}
+  html.mode-mobile .sum-card .val{font-size:19px; white-space:nowrap;}
+  html.mode-mobile .desktop-table{display:none;}
+  html.mode-mobile .mobile-list{display:block;}
+  html.mode-mobile .form-grid{grid-template-columns:1fr 1fr;}
+  html.mode-mobile .card{padding:14px; margin-bottom:14px;}
+  html.mode-mobile input, html.mode-mobile select{font-size:16px; padding:11px 12px;}
+  html.mode-mobile .btn{padding:12px 16px; font-size:15px;}
+  html.mode-mobile .mini-btn{padding:7px 11px; font-size:12.5px;}
+  html.mode-mobile .view-tabs{flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:4px;}
+  html.mode-mobile .view-tabs .btn{flex:none; white-space:nowrap; padding:9px 13px; font-size:13.5px;}
+  html.mode-mobile .toolbar .field{min-width:100%;}
+  html.mode-mobile .main-tabs{position:fixed; left:0; right:0; bottom:0; z-index:500; margin:0; display:grid; grid-template-columns:repeat(5,1fr); gap:2px; background:var(--green-deep); padding:6px 6px calc(6px + env(safe-area-inset-bottom)); box-shadow:0 -4px 18px rgba(0,0,0,0.18);}
+  html.mode-mobile .main-tabs .btn{border:none; border-radius:10px; background:transparent; color:#D9CFAF; padding:6px 2px; font-size:10.5px; line-height:1.25; white-space:normal; text-align:center;}
+  html.mode-mobile .main-tabs .btn.active{background:rgba(244,238,220,0.16); color:#fff;}
+  html.mode-mobile .main-tabs .ti{display:block; margin:0 0 2px; font-size:19px;}
+
+  /* ভিউ বদলানোর বাটন */
+  #viewToggle{background:none; border:1px solid var(--line); border-radius:14px; padding:4px 12px; font-family:inherit; font-size:12px; color:var(--ink-soft); cursor:pointer; margin-left:6px;}
 
   /* Print voucher layout */
   .print-only{display:none;}
@@ -137,6 +204,9 @@
     body{background:#fff; padding:0;}
     .no-print{display:none !important;}
     .print-only{display:block;}
+    .desktop-table{display:table !important;}
+    .mobile-list{display:none !important;}
+    html.mode-desktop .wrap{display:block;}
     .card{box-shadow:none; border:1px solid #999;}
     header{background:#fff !important; color:#000 !important; box-shadow:none; border:1px solid #999;}
     header .eyebrow{color:#555;}
@@ -149,6 +219,16 @@
 </style>
 </head>
 <body>
+<div id="loginGate">
+  <div class="box">
+    <div style="font-size:54px;">📒</div>
+    <h1>অফিস খরচ ও হিসাব</h1>
+    <p>শুরু করতে আপনার Google (Gmail) অ্যাকাউন্ট দিয়ে লগইন করুন।<br>আপনার সব হিসাব আপনার নিজের Google Drive-এ নিরাপদে জমা থাকবে — অ্যাপ মুছে আবার নামিয়ে একই Gmail দিয়ে ঢুকলে সব ফিরে আসবে।</p>
+    <button class="btn btn-primary gbtn" id="gateLoginBtn">🔑 Google দিয়ে লগইন করুন</button>
+    <div id="loginErr"></div>
+  </div>
+</div>
+
 <div class="wrap">
 
   <div id="installBanner">
@@ -156,7 +236,13 @@
     <button id="installBtn">ইনস্টল করুন</button>
   </div>
 
+  <div id="backupBanner" class="no-print" style="display:none; align-items:center; justify-content:space-between; gap:10px; background:var(--red-soft); color:var(--red); border-radius:10px; padding:11px 15px; margin-bottom:16px; font-size:13px; font-weight:600;">
+    <span>⚠️ আপনি এখনো কোনো ব্যাকআপ নেননি — ফোন হারালে/রিসেট হলে ডেটা হারিয়ে যেতে পারে</span>
+    <button id="goBackupBtn" style="background:var(--red); color:#fff; border:none; border-radius:7px; padding:7px 13px; font-weight:700; font-size:12.5px; cursor:pointer; white-space:nowrap;">ব্যাকআপ নিন</button>
+  </div>
+
   <header>
+    <div class="sync-pill no-print" id="syncPill" style="display:none;"></div>
     <div class="eyebrow">হিসাবের খাতা</div>
     <h1>অফিস খরচ ও হিসাব</h1>
     <div class="sub">আজ, <span id="todayDate"></span></div>
@@ -186,6 +272,7 @@
     <button class="btn btn-outline" id="navIncome">💰 জমা টাকার হিসাব</button>
     <button class="btn btn-outline" id="navSettle">🎫 ভাউচার জমা</button>
     <button class="btn btn-outline" id="navRecon">🧮 হিসাব নিষ্পত্তি</button>
+    <button class="btn btn-outline" id="navBackup">💾 ব্যাকআপ</button>
   </div>
 
   <!-- EXPENSE SECTION -->
@@ -415,14 +502,50 @@
     </div>
   </div>
 
+  <!-- BACKUP SECTION -->
+  <div id="sectionBackup" class="hidden no-print">
+    <div class="card" id="accountCard">
+      <h2>Google অ্যাকাউন্ট ও অটো-সেভ</h2>
+      <p id="accountInfo" style="font-size:14px; color:var(--ink-soft); margin-top:-4px;"></p>
+      <div class="btn-row">
+        <button class="btn btn-outline" id="syncNowBtn">🔄 এখনই সিঙ্ক করুন</button>
+        <button class="btn btn-ghost" id="logoutBtn">🚪 লগআউট</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>ব্যাকআপ ফাইল ডাউনলোড করুন</h2>
+      <p style="font-size:13.5px; color:var(--ink-soft); margin-top:-4px;">
+        ফোন রিসেট হলে, ব্রাউজারের ডেটা মুছে গেলে, বা নতুন ফোনে গেলে — এই ব্যাকআপ ফাইলটাই আপনার একমাত্র ভরসা।
+        <strong>সপ্তাহে অন্তত একবার</strong> এই বাটনে চেপে ফাইলটা ডাউনলোড করে Google Drive, WhatsApp (নিজেকে পাঠিয়ে), বা ইমেইলে রেখে দিন।
+      </p>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="exportBtn" style="flex:2;">⬇️ ব্যাকআপ ফাইল ডাউনলোড করুন</button>
+      </div>
+      <p id="lastBackupNote" style="font-size:12.5px; color:var(--ink-soft); margin:10px 0 0;"></p>
+    </div>
+
+    <div class="card">
+      <h2>ব্যাকআপ থেকে ফিরিয়ে আনুন</h2>
+      <p style="font-size:13.5px; color:var(--ink-soft); margin-top:-4px;">
+        আগে ডাউনলোড করা ব্যাকআপ ফাইল (.json) থাকলে সেটা দিয়ে সব ডেটা ফিরিয়ে আনতে পারবেন।
+        <strong style="color:var(--red);">সতর্কতা:</strong> এটা করলে ফোনে এখন যা আছে তা ব্যাকআপ ফাইলের ডেটা দিয়ে প্রতিস্থাপিত হয়ে যাবে।
+      </p>
+      <input type="file" id="importFile" accept="application/json,.json" style="margin-bottom:10px;">
+      <div class="btn-row">
+        <button class="btn btn-red" id="importBtn" style="flex:2;">⬆️ ব্যাকআপ ফাইল থেকে ফিরিয়ে আনুন</button>
+      </div>
+    </div>
+  </div>
+
   <div class="sign-row print-only">
     <div class="sign-box">প্রস্তুতকারীর স্বাক্ষর</div>
     <div class="sign-box">অনুমোদনকারীর স্বাক্ষর</div>
   </div>
 
-  <footer class="note no-print">অফিস খরচ ও হিসাব · এই ডিভাইসে আপনার তথ্য নিরাপদে সংরক্ষিত থাকে</footer>
+  <footer class="note no-print">অফিস খরচ ও হিসাব · এই ডিভাইসে আপনার তথ্য নিরাপদে সংরক্ষিত থাকে · <a href="privacy.html" style="color:inherit;">গোপনীয়তা নীতি</a> · <button id="viewToggle" type="button"></button></footer>
 </div>
 
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 const bnDigits = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
 function toBn(num){ return String(num).replace(/[0-9]/g, d => bnDigits[d]); }
@@ -474,10 +597,10 @@ function loadAll(){
   try{ reconciliations = JSON.parse(localStorage.getItem(K_RECON) || '[]'); }catch(e){ reconciliations = []; }
   backfillVoucherNumbers();
 }
-function saveExp(){ localStorage.setItem(K_EXP, JSON.stringify(expenses)); }
-function saveInc(){ localStorage.setItem(K_INC, JSON.stringify(incomes)); }
-function saveBatches(){ localStorage.setItem(K_BATCH, JSON.stringify(voucherBatches)); }
-function saveRecon(){ localStorage.setItem(K_RECON, JSON.stringify(reconciliations)); }
+function saveExp(){ localStorage.setItem(K_EXP, JSON.stringify(expenses)); touch(); }
+function saveInc(){ localStorage.setItem(K_INC, JSON.stringify(incomes)); touch(); }
+function saveBatches(){ localStorage.setItem(K_BATCH, JSON.stringify(voucherBatches)); touch(); }
+function saveRecon(){ localStorage.setItem(K_RECON, JSON.stringify(reconciliations)); touch(); }
 
 const K_COUNTER = 'okh-voucher-counter-v1';
 function nextVoucherNo(){
@@ -493,6 +616,61 @@ function backfillVoucherNumbers(){
   missing.sort((a,b)=> (a.createdAt||'').localeCompare(b.createdAt||''));
   missing.forEach(e => { e.voucherNo = nextVoucherNo(); });
   saveExp();
+}
+
+/* ---- Backup / Restore ---- */
+const K_LAST_BACKUP = 'okh-last-backup-v1';
+function exportBackup(){
+  const data = {
+    app: 'অফিস খরচ ও হিসাব', version: 1, exportedAt: new Date().toISOString(),
+    expenses, incomes, voucherBatches, reconciliations,
+    voucherCounter: parseInt(localStorage.getItem(K_COUNTER) || '0', 10)
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = todayStr();
+  a.href = url;
+  a.download = `office-kharoch-backup-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  localStorage.setItem(K_LAST_BACKUP, new Date().toISOString());
+  updateLastBackupNote();
+}
+function updateLastBackupNote(){
+  const el = document.getElementById('lastBackupNote');
+  const last = localStorage.getItem(K_LAST_BACKUP);
+  el.textContent = last ? `সর্বশেষ ব্যাকআপ নেওয়া হয়েছে: ${prettyDate(last.slice(0,10))}` : 'এখনো কোনো ব্যাকআপ নেওয়া হয়নি — এখনই একটা নিয়ে রাখুন।';
+  checkBackupBanner();
+}
+function checkBackupBanner(){
+  const banner = document.getElementById('backupBanner');
+  const hasData = expenses.length>0 || incomes.length>0;
+  const last = localStorage.getItem(K_LAST_BACKUP);
+  banner.style.display = (hasData && !last) ? 'flex' : 'none';
+}
+function importBackup(file){
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!data || !Array.isArray(data.expenses)){ alert('এটা সঠিক ব্যাকআপ ফাইল মনে হচ্ছে না'); return; }
+      if(!confirm('এখন ফোনে যা আছে তা মুছে ব্যাকআপ ফাইলের ডেটা বসানো হবে। নিশ্চিত?')) return;
+      expenses = data.expenses || [];
+      incomes = data.incomes || [];
+      voucherBatches = data.voucherBatches || [];
+      reconciliations = data.reconciliations || [];
+      saveExp(); saveInc(); saveBatches(); saveRecon();
+      if(data.voucherCounter) localStorage.setItem(K_COUNTER, String(data.voucherCounter));
+      renderAll();
+      alert('ব্যাকআপ থেকে ডেটা ফিরিয়ে আনা হয়েছে।');
+    }catch(err){
+      alert('ফাইলটা পড়া যায়নি, এটা ঠিক ব্যাকআপ ফাইল কিনা যাচাই করুন।');
+    }
+  };
+  reader.readAsText(file);
 }
 
 let expMode = 'today'; // today | all | range | vouchers
@@ -823,17 +1001,19 @@ function renderAll(){
   renderIncomes();
   renderBatches();
   updateVoucherPreview();
+  checkBackupBanner();
 }
 
 /* ---- Nav switching ---- */
 function showSection(id){
-  ['sectionExpense','sectionIncome','sectionSettle','sectionRecon'].forEach(s=>{
+  ['sectionExpense','sectionIncome','sectionSettle','sectionRecon','sectionBackup'].forEach(s=>{
     document.getElementById(s).classList.toggle('hidden', s!==id);
   });
   document.getElementById('navExpense').classList.toggle('active', id==='sectionExpense');
   document.getElementById('navIncome').classList.toggle('active', id==='sectionIncome');
   document.getElementById('navSettle').classList.toggle('active', id==='sectionSettle');
   document.getElementById('navRecon').classList.toggle('active', id==='sectionRecon');
+  document.getElementById('navBackup').classList.toggle('active', id==='sectionBackup');
 }
 document.getElementById('navExpense').addEventListener('click', ()=>showSection('sectionExpense'));
 document.getElementById('navIncome').addEventListener('click', ()=>showSection('sectionIncome'));
@@ -846,6 +1026,10 @@ document.getElementById('navSettle').addEventListener('click', ()=>{
 document.getElementById('navRecon').addEventListener('click', ()=>{
   showSection('sectionRecon');
   renderRecon();
+});
+document.getElementById('navBackup').addEventListener('click', ()=>{
+  showSection('sectionBackup');
+  updateLastBackupNote();
 });
 
 /* ---- Reconciliation (income vs expense net settle) ---- */
@@ -969,6 +1153,15 @@ document.getElementById('submitVoucherBtn').addEventListener('click', ()=>{
   alert('ভাউচার জমা রেকর্ড করা হয়েছে।');
 });
 
+/* ---- Backup buttons ---- */
+document.getElementById('exportBtn').addEventListener('click', exportBackup);
+document.getElementById('goBackupBtn').addEventListener('click', ()=>{ showSection('sectionBackup'); updateLastBackupNote(); });
+document.getElementById('importBtn').addEventListener('click', ()=>{
+  const fileInput = document.getElementById('importFile');
+  if(!fileInput.files || fileInput.files.length===0){ alert('প্রথমে একটা ব্যাকআপ ফাইল বেছে দিন'); return; }
+  importBackup(fileInput.files[0]);
+});
+
 /* ---- PWA install ---- */
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); });
@@ -985,8 +1178,208 @@ document.getElementById('installBtn').addEventListener('click', async ()=>{
 });
 window.addEventListener('appinstalled', ()=>{ document.getElementById('installBanner').style.display = 'none'; });
 
+
+/* ---- Google sign-in + Drive sync ---- */
+const CLIENT_ID = '27448824786-svbkmbrh9vfu45c44efk3v9pmojvbm8h.apps.googleusercontent.com';
+const SYNC_ENABLED = !!CLIENT_ID && CLIENT_ID.indexOf('PASTE') !== 0;
+const SCOPES = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.email';
+const DRIVE_FILE_NAME = 'office-kharoch-data.json';
+const K_SIGNED='okh-signed-in', K_EMAIL='okh-account-email', K_UPD='okh-updated-at', K_PENDING='okh-sync-pending';
+let tokenClient=null, accessToken=null, tokenExpiry=0, driveFileId=null, uploadTimer=null, suppressTouch=true, syncBusy=false, tokenWait=null;
+
+function touch(){
+  if(suppressTouch) return;
+  localStorage.setItem(K_UPD, new Date().toISOString());
+  if(SYNC_ENABLED && localStorage.getItem(K_SIGNED)){
+    localStorage.setItem(K_PENDING,'1'); setSyncStatus('pending');
+    clearTimeout(uploadTimer); uploadTimer=setTimeout(()=>uploadNow(false),1500);
+  }
+}
+function setSyncStatus(state){
+  const pill=document.getElementById('syncPill');
+  const map={synced:'☁️ সিঙ্ক হয়েছে', pending:'⏳ সিঙ্ক বাকি', busy:'🔄 সিঙ্ক হচ্ছে…', login:'🔑 সিঙ্ক চালু করতে ট্যাপ করুন', error:'⚠️ সিঙ্ক হয়নি — ট্যাপ করুন'};
+  pill.dataset.state=state;
+  if(!SYNC_ENABLED || state==='off'){ pill.style.display='none'; return; }
+  pill.style.display='block'; pill.textContent=map[state]||'';
+}
+function hasLocalData(){ return expenses.length||incomes.length||voucherBatches.length||reconciliations.length; }
+function snapshot(){
+  return { version:1, updatedAt: localStorage.getItem(K_UPD)||new Date().toISOString(),
+    expenses, incomes, voucherBatches, reconciliations,
+    voucherCounter: parseInt(localStorage.getItem(K_COUNTER)||'0',10) };
+}
+function applyRemote(r){
+  suppressTouch=true;
+  localStorage.setItem(K_EXP, JSON.stringify(r.expenses||[]));
+  localStorage.setItem(K_INC, JSON.stringify(r.incomes||[]));
+  localStorage.setItem(K_BATCH, JSON.stringify(r.voucherBatches||[]));
+  localStorage.setItem(K_RECON, JSON.stringify(r.reconciliations||[]));
+  localStorage.setItem(K_COUNTER, String(r.voucherCounter||0));
+  localStorage.setItem(K_UPD, r.updatedAt||new Date().toISOString());
+  loadAll(); renderAll();
+  suppressTouch=false;
+}
+function getToken(interactive){
+  return new Promise((resolve,reject)=>{
+    if(accessToken && Date.now()<tokenExpiry) return resolve(accessToken);
+    if(!tokenClient) return reject(new Error('gis-not-ready'));
+    tokenWait={resolve,reject};
+    const signed=!!localStorage.getItem(K_SIGNED);
+    const opts={prompt: (interactive && !signed) ? 'select_account' : ''};
+    const hint=localStorage.getItem(K_EMAIL); if(hint) opts.login_hint=hint;
+    try{ tokenClient.requestAccessToken(opts); }catch(e){ reject(e); }
+  });
+}
+async function driveFetch(url, opts){
+  opts=opts||{}; opts.headers=Object.assign({}, opts.headers, {Authorization:'Bearer '+accessToken});
+  const r=await fetch(url, opts);
+  if(!r.ok) throw new Error('drive '+r.status);
+  return r;
+}
+async function fetchEmail(){
+  try{ const r=await driveFetch('https://www.googleapis.com/oauth2/v3/userinfo'); return (await r.json()).email||''; }catch(e){ return ''; }
+}
+async function findFile(){
+  const q=encodeURIComponent("name='"+DRIVE_FILE_NAME+"'");
+  const r=await driveFetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q='+q+'&fields=files(id,name)');
+  const j=await r.json(); driveFileId=(j.files&&j.files[0])?j.files[0].id:null; return driveFileId;
+}
+async function putFile(){
+  const body=JSON.stringify(snapshot());
+  if(driveFileId){
+    await driveFetch('https://www.googleapis.com/upload/drive/v3/files/'+driveFileId+'?uploadType=media',{method:'PATCH',headers:{'Content-Type':'application/json; charset=UTF-8'},body});
+  } else {
+    const b='okhb'+Date.now();
+    const meta=JSON.stringify({name:DRIVE_FILE_NAME,parents:['appDataFolder']});
+    const mp='--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+meta+'\r\n--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+body+'\r\n--'+b+'--';
+    const r=await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body:mp});
+    driveFileId=(await r.json()).id;
+  }
+  localStorage.removeItem(K_PENDING);
+}
+async function uploadNow(interactive){
+  if(!SYNC_ENABLED || !localStorage.getItem(K_SIGNED)) return;
+  if(syncBusy){ setTimeout(()=>uploadNow(interactive),1500); return; }
+  syncBusy=true; setSyncStatus('busy');
+  try{
+    await getToken(interactive);
+    if(!driveFileId) await findFile();
+    await putFile(); setSyncStatus('synced');
+  }catch(e){ setSyncStatus(interactive?'error':'login'); }
+  finally{ syncBusy=false; updateAccountInfo(); }
+}
+async function syncFromDrive(interactive){
+  if(syncBusy) return;
+  syncBusy=true; setSyncStatus('busy');
+  try{
+    await getToken(interactive);
+    const email=await fetchEmail();
+    if(email) localStorage.setItem(K_EMAIL,email);
+    localStorage.setItem(K_SIGNED,'1');
+    await findFile();
+    const hasLocal=!!hasLocalData();
+    if(!driveFileId){
+      if(hasLocal){ if(!localStorage.getItem(K_UPD)) localStorage.setItem(K_UPD,new Date().toISOString()); await putFile(); }
+    } else {
+      const r=await driveFetch('https://www.googleapis.com/drive/v3/files/'+driveFileId+'?alt=media');
+      const remote=await r.json();
+      const localUpd=localStorage.getItem(K_UPD)||'';
+      let useRemote;
+      if(!hasLocal) useRemote=true;
+      else if(!localUpd) useRemote=confirm('আপনার Google Drive-এ আগের সেভ করা ডেটা পাওয়া গেছে।\n\nOK = Drive-এর ডেটা বসাই (এই ফোনের ডেটা মুছে যাবে)\nCancel = এই ফোনের ডেটা Drive-এ রাখি (Drive-এর পুরনো ডেটা বদলে যাবে)');
+      else useRemote=(remote.updatedAt||'')>localUpd;
+      if(useRemote){
+        if(hasLocal) localStorage.setItem('okh-pre-sync-backup', JSON.stringify(snapshot()));
+        applyRemote(remote); localStorage.removeItem(K_PENDING);
+      } else if((remote.updatedAt||'')!==localUpd || localStorage.getItem(K_PENDING)){
+        if(!localUpd) localStorage.setItem(K_UPD,new Date().toISOString());
+        await putFile();
+      }
+    }
+    showGate(false); setSyncStatus('synced');
+  }catch(e){
+    setSyncStatus(interactive?'error':'login');
+    if(interactive){ const el=document.getElementById('loginErr'); if(el) el.textContent='লগইন হয়নি। ইন্টারনেট চেক করে আবার চেষ্টা করুন।'; }
+  } finally { syncBusy=false; updateAccountInfo(); }
+}
+function showGate(on){ document.getElementById('loginGate').style.display = on ? 'flex' : 'none'; }
+function updateAccountInfo(){
+  const card=document.getElementById('accountCard'); if(!card) return;
+  const info=document.getElementById('accountInfo');
+  if(!SYNC_ENABLED){ info.textContent='Google লগইন এখনো চালু করা হয়নি।'; document.getElementById('syncNowBtn').style.display='none'; document.getElementById('logoutBtn').style.display='none'; return; }
+  const email=localStorage.getItem(K_EMAIL);
+  const pend=localStorage.getItem(K_PENDING)?' (সিঙ্ক বাকি আছে)':'';
+  info.textContent = localStorage.getItem(K_SIGNED) ? ('লগইন: '+(email||'Google অ্যাকাউন্ট')+pend+' — আপনার ডেটা আপনার Google Drive-এ অটো-সেভ হচ্ছে।') : 'লগইন করা নেই।';
+}
+function initGis(){
+  tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:CLIENT_ID, scope:SCOPES,
+    callback:(resp)=>{
+      if(resp.error){ tokenWait&&tokenWait.reject(new Error(resp.error)); return; }
+      accessToken=resp.access_token; tokenExpiry=Date.now()+((resp.expires_in||3600)-60)*1000;
+      tokenWait&&tokenWait.resolve(accessToken);
+    },
+    error_callback:(err)=>{ tokenWait&&tokenWait.reject(err); }
+  });
+  if(localStorage.getItem(K_SIGNED)) syncFromDrive(false);
+}
+function initSyncStartup(){
+  suppressTouch=false;
+  if(!SYNC_ENABLED){ setSyncStatus('off'); updateAccountInfo(); return; }
+  if(!localStorage.getItem(K_SIGNED)) showGate(true); else setSyncStatus('login');
+  updateAccountInfo();
+  let tries=0;
+  const t=setInterval(()=>{
+    tries++;
+    if(window.google && google.accounts && google.accounts.oauth2){ clearInterval(t); initGis(); }
+    else if(tries>50){ clearInterval(t); }
+  },300);
+  document.getElementById('gateLoginBtn').addEventListener('click',()=>{
+    document.getElementById('loginErr').textContent='';
+    if(!tokenClient){ document.getElementById('loginErr').textContent='Google সার্ভিস লোড হয়নি, ইন্টারনেট চেক করে আবার চাপুন।'; return; }
+    syncFromDrive(true);
+  });
+  document.getElementById('syncPill').addEventListener('click',()=>{
+    if(!tokenClient) return;
+    const st=document.getElementById('syncPill').dataset.state;
+    if(st==='synced'||st==='busy') return;
+    syncFromDrive(true);
+  });
+  document.getElementById('syncNowBtn').addEventListener('click',()=>{ if(tokenClient) syncFromDrive(true); else alert('Google সার্ভিস লোড হয়নি'); });
+  document.getElementById('logoutBtn').addEventListener('click',()=>{
+    if(localStorage.getItem(K_PENDING) && !confirm('কিছু পরিবর্তন এখনো Drive-এ সিঙ্ক হয়নি, লগআউট করলে সেগুলো হারাতে পারেন। তবুও এগোবেন?')) return;
+    if(!confirm('লগআউট করলে এই ফোন থেকে ডেটা মুছে যাবে (আপনার Google Drive-এ থাকবে)। আবার লগইন করলে ফিরে আসবে। এগোবেন?')) return;
+    [K_EXP,K_INC,K_BATCH,K_RECON,K_COUNTER,K_SIGNED,K_EMAIL,K_UPD,K_PENDING,K_LAST_BACKUP,OLD_KEY].forEach(k=>localStorage.removeItem(k));
+    location.reload();
+  });
+}
+
 loadAll();
 renderAll();
+initSyncStartup();
+
+/* ---- মোবাইল / ডেস্কটপ ভিউ ---- */
+(function(){
+  // নেভ বাটনে আইকন আর লেখা আলাদা করা (মোবাইলের নিচের বারের জন্য)
+  document.querySelectorAll('.main-tabs > .btn').forEach(function(b){
+    var t=b.textContent.trim(), i=t.indexOf(' ');
+    if(i>0){ b.innerHTML='<span class="ti">'+t.slice(0,i)+'</span><span class="tl">'+t.slice(i+1)+'</span>'; }
+  });
+  var btn=document.getElementById('viewToggle');
+  var names={auto:'অটো', mobile:'মোবাইল', desktop:'ডেস্কটপ'};
+  function label(){
+    var r=window.applyViewMode();
+    btn.textContent=(r.mode==='mobile'?'📱':'🖥️')+' ভিউ: '+names[r.pref]+(r.pref==='auto'?' ('+names[r.mode]+')':'');
+  }
+  btn.addEventListener('click', function(){
+    var cur='auto'; try{ cur=localStorage.getItem('viewPref')||'auto'; }catch(e){}
+    var next={auto:'mobile', mobile:'desktop', desktop:'auto'}[cur]||'auto';
+    try{ if(next==='auto') localStorage.removeItem('viewPref'); else localStorage.setItem('viewPref', next); }catch(e){}
+    label();
+  });
+  var t; window.addEventListener('resize', function(){ clearTimeout(t); t=setTimeout(label,150); });
+  label();
+})();
 </script>
 </body>
 </html>
