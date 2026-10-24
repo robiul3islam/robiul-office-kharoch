@@ -234,6 +234,34 @@
     .sign-row{display:flex; justify-content:space-between; margin-top:50px;}
     .sign-box{width:40%; text-align:center; font-size:12.5px; border-top:1px solid #333; padding-top:6px;}
   }
+
+  /* ===== প্রিন্ট: ছোট হেডার, বাড়তি লেখা বাদ, এক পাতায় বেশি সারি ===== */
+  @media print{
+    @page{ size:A4; margin:0; }  /* margin 0 = ব্রাউজারের তারিখ/URL/পেজ নম্বর ছাপা হয় না */
+    html body{padding:9mm 12mm 10mm !important; background:#fff !important; font-size:12px;}
+    html .wrap{max-width:none !important; display:block !important;}
+    #installBanner{display:none !important;}
+    header{display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:10px; padding:6px 12px !important; margin:0 0 6px !important; border-radius:6px; border:1px solid #888 !important;}
+    header::before{display:none;}
+    header .eyebrow{display:none;}
+    header h1{font-size:17px !important; margin:0; color:#000;}
+    header .sub{font-size:11px !important; color:#333 !important; white-space:nowrap; text-align:right;}
+    .voucher-title{font-size:15px !important; margin:4px 0 2px !important;}
+    .voucher-meta{font-size:11px !important; margin-bottom:5px !important;}
+    .card{padding:6px 8px !important; margin-bottom:6px !important; break-inside:auto; page-break-inside:auto;}
+    .ledger-head{padding-bottom:4px; margin-bottom:2px;}
+    .ledger-head .title, .ledger-head .total{font-size:13px !important;}
+    table{margin-top:2px;}
+    thead{display:table-header-group;}
+    thead th{padding:6mm 5px 3px !important; font-size:10.5px !important;}  /* উপরের ফাঁকা অংশ পরের পাতাতেও থাকে */
+    thead th:empty{display:none;}
+    .card{background:#fff !important;}
+    tbody td{padding:3px 5px !important; font-size:11.5px !important; line-height:1.35;}
+    tbody tr{break-inside:avoid; page-break-inside:avoid;}
+    tbody tr:hover{background:none;}
+    .cat-badge, .method-badge, .voucher-badge{font-size:10px !important; padding:1px 6px !important;}
+    .sign-row{margin-top:28px !important; break-inside:avoid;}
+  }
 </style>
 </head>
 <body>
@@ -249,7 +277,7 @@
 
 <div class="wrap">
 
-  <div id="installBanner">
+  <div id="installBanner" class="no-print">
     <span>📲 এই টুলটা অ্যাপের মতো ইনস্টল করে নিন</span>
     <button id="installBtn">ইনস্টল করুন</button>
   </div>
